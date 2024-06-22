@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Analizador de codigo</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #007BFF;
+            margin-bottom: 20px;
+        }
+
+        #codeForm {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            width: 80%;
+            max-width: 800px;
+        }
+
+        h3 {
+            color: #007BFF;
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        li {
+            background: #ffdddd;
+            color: #d8000c;
+            margin: 5px 0;
+            padding: 10px;
+            border-left: 3px solid #d8000c;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .totals {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background: #e7f3fe;
+            border: 1px solid #b3d4fc;
+            border-radius: 4px;
+        }
+
+        .totals p {
+            margin: 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form id="codeForm">
+        <h1>Analizador lexico, sintactico, semantico</h1>
+        <textarea name="code" id="code" rows="10" cols="50">
+</textarea><br>
+        <button type="button" onclick="analyzeCode()">Analizar</button>
+    </form>
+    <div id="result">
+        <div class="section" id="semantic-result"></div>
+        <div class="section" id="syntactic-result"></div>
+        <div class="section" id="lexical-result"></div>
+    </div>
+
+    <script>
+        function analyzeCode() {
+            const form = document.getElementById('codeForm');
+            const formData = new FormData(form);
+            fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    let semanticResultDiv = document.getElementById('semantic-result');
+                    let syntacticResultDiv = document.getElementById('syntactic-result');
+                    let lexicalResultDiv = document.getElementById('lexical-result');
+                    let errors = data.errors;
+                    let syntaxErrors = data.syntax_errors;
+
+                    if (errors && errors.length > 0) {
+                        semanticResultDiv.innerHTML = '<h3>Analisis semantico Errors:</h3><ul>' + errors.map(error => '<li>' + error + '</li>').join('') + '</ul>';
+                    } else {
+                        semanticResultDiv.innerHTML = '<h3>Analisis semantico:</h3><p>' + data.message + '</p>';
+                    }
+
+                    if (syntaxErrors && syntaxErrors.length > 0) {
+                        syntacticResultDiv.innerHTML = '<h3>Analisis sintactico Errors:</h3><ul>' + syntaxErrors.map(error => '<li>' + error + '</li>').join('') + '</ul>';
+                    } else {
+                        syntacticResultDiv.innerHTML = '<h3>Analisis sintactico:</h3><p>Análisis sintáctico correcto.</p>';
+                    }
+
+                    let tableHTML = '<h3>Analizador lexico</h3><table><tr><th>Token</th><th>Reservada</th><th>Identificador</th><th>Número</th><th>Símbolo</th><th>String</th></tr>';
+                    data.lexical.forEach(token => {
+                        let isReserved = token.category === 'Reservada' ? 'x' : '';
+                        let isIdent = token.category === 'Identificador' ? 'x' : '';
+                        let isNum = token.category === 'Número' ? 'x' : '';
+                        let isSymbol = token.category === 'Símbolo' ? 'x' : '';
+                        let isString = token.category === 'String' ? 'x' : '';
+                        tableHTML += `<tr>
+                            <td>${token.value}</td>
+                            <td>${isReserved}</td>
+                            <td>${isIdent}</td>
+                            <td>${isNum}</td>
+                            <td>${isSymbol}</td>
+                            <td>${isString}</td>
+                        </tr>`;
+                    });
+                    tableHTML += '</table>';
+
+                    let totalsHTML = `<div class="totals">
+                                      <p>Reservadas: ${data.totals.Reservada}</p>
+                                      <p>Identificadores: ${data.totals.Identificador}</p>
+                                      <p>Números: ${data.totals.Número}</p>
+                                      <p>Símbolos: ${data.totals.Símbolo}</p>
+                                      <p>Strings: ${data.totals.String}</p>
+                                      </div>`;
+
+                    lexicalResultDiv.innerHTML = tableHTML + totalsHTML;
+                });
+        }
+    </script>
+</body>
+
+</html>
